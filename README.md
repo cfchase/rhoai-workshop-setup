@@ -1,0 +1,1 @@
+# rhoai-workshop-setup
