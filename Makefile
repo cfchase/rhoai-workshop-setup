@@ -20,6 +20,10 @@ default:
 s3:
 	oc apply -n $(PROJECT_NAME) -k kustomize/overlays/s3
 
+.PHONY: generate-s3
+generate-s3:
+	kustomize build kustomize/overlays/s3 > generated/setup-s3.yaml
+
 .PHONY: inference
 inference:
 	oc apply -n $(PROJECT_NAME) -k kustomize/overlays/inference

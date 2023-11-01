@@ -38,7 +38,6 @@ spec:
           args:
             - -ec
             - |-
-              curl -LO https://raw.githubusercontent.com/rh-aiservices-bu/yolov5-model-serving/main/yolov5n.onnx
               oc get secret minio-root-user
 
               cat << 'EOF' | python3
@@ -48,6 +47,7 @@ spec:
                                 endpoint_url="http://minio:9000",
                                 aws_access_key_id=os.getenv("MINIO_ROOT_USER"),
                                 aws_secret_access_key=os.getenv("MINIO_ROOT_PASSWORD"))
+
               bucket = 'pipeline-artifacts'
               print('creating pipeline-artifacts bucket')
               if bucket not in [bu["Name"] for bu in s3.list_buckets()["Buckets"]]:
@@ -57,9 +57,6 @@ spec:
               print('creating my-storage bucket')
               if bucket not in [bu["Name"] for bu in s3.list_buckets()["Buckets"]]:
                 s3.create_bucket(Bucket=bucket)
-
-              with open("yolov5n.onnx", "rb") as f:
-                s3.upload_fileobj(f, bucket, f"models/yolov5n/yolov5n.onnx")
               EOF
           envFrom:
             - secretRef:

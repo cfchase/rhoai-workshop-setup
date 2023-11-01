@@ -217,7 +217,7 @@ spec:
             - -ec
             - |-
               oc get secret minio-root-user
-              env | grep MINIO
+
               cat << 'EOF' | python3
               import boto3, os
 
@@ -225,10 +225,12 @@ spec:
                                 endpoint_url="http://minio:9000",
                                 aws_access_key_id=os.getenv("MINIO_ROOT_USER"),
                                 aws_secret_access_key=os.getenv("MINIO_ROOT_PASSWORD"))
+
               bucket = 'pipeline-artifacts'
               print('creating pipeline-artifacts bucket')
               if bucket not in [bu["Name"] for bu in s3.list_buckets()["Buckets"]]:
                 s3.create_bucket(Bucket=bucket)
+
               bucket = 'my-storage'
               print('creating my-storage bucket')
               if bucket not in [bu["Name"] for bu in s3.list_buckets()["Buckets"]]:
@@ -300,8 +302,8 @@ spec:
               genpass() {
                   < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}"
               }
-              id=$(genpass 16)
-              secret=$(genpass)
+              MINIO_ROOT_USER=${MINIO_ROOT_USER:-$(genpass 16)}
+              MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-$(genpass)}
               cat << EOF | oc apply -f-
               apiVersion: v1
               kind: Secret
@@ -309,11 +311,16 @@ spec:
                 name: minio-root-user
               type: Opaque
               stringData:
-                MINIO_ROOT_USER: ${id}
-                MINIO_ROOT_PASSWORD: ${secret}
+                MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+                MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
               EOF
           command:
             - /bin/bash
+          env:
+            - name: MINIO_ROOT_USER
+              value: ""
+            - name: MINIO_ROOT_PASSWORD
+              value: ""
           image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
           imagePullPolicy: IfNotPresent
           name: create-minio-root-user
