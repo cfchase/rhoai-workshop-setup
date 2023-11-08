@@ -3,7 +3,8 @@ SHELL := /bin/bash
 .EXPORT_ALL_VARIABLES:
 
 PROJECT_NAME = workshop
-
+MINIO_ROOT_USER = ""
+MINIO_ROOT_PASSWORD = ""
 
 .PHONY: all
 all: dsproject default
@@ -19,6 +20,10 @@ default:
 .PHONY: s3
 s3:
 	oc apply -n $(PROJECT_NAME) -k kustomize/overlays/s3
+
+.PHONY: generate
+generate:
+	kustomize build kustomize/overlays/default > generated/setup.yaml
 
 .PHONY: generate-s3
 generate-s3:

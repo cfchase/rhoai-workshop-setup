@@ -1,0 +1,96 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-network-policies-job
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      serviceAccount: demo-setup
+      serviceAccountName: demo-setup
+      containers:
+      - name: create-network-policies
+        image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args:
+        - -ec
+        - |-
+          apply_policies() {
+              local ns=$1
+              shift
+              local policies=("$@")
+
+              for policy in "${policies[@]}"; do
+                  # Replace 'default' namespace with the actual namespace name
+                  local policy_to_apply=${policy//default/$ns}
+                  kubectl apply -n "$ns" -f - <<< "$policy_to_apply"
+              done
+          }
+
+
+          allow_openshift_ingress_policy=$(cat <<'EOF'
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          metadata:
+            name: allow-openshift-ingress
+            namespace: default
+            labels:
+              opendatahub.io/created-by: RHOAIENG-1003
+          spec:
+            podSelector: {}
+            ingress:
+              - from:
+                  - namespaceSelector:
+                      matchLabels:
+                        network.openshift.io/policy-group: ingress
+            policyTypes:
+              - Ingress
+          EOF
+          )
+
+          allow_traffic_from_dsp_policy=$(cat <<'EOF'
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          metadata:
+            name: allow-traffic-from-data-science-projects
+            namespace: default
+            labels:
+              opendatahub.io/created-by: RHOAIENG-1003
+          spec:
+            podSelector: {}
+            ingress:
+              - from:
+                  - namespaceSelector:
+                      matchLabels:
+                        opendatahub.io/dashboard: 'true'
+            policyTypes:
+              - Ingress
+          EOF
+          )
+
+          allow_traffic_from_rhods=$(cat <<'EOF'
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          metadata:
+            name: allow-traffic-from-redhat-ods-applications
+            namespace: default
+            labels:
+              opendatahub.io/created-by: RHOAIENG-1003
+          spec:
+            podSelector: {}
+            ingress:
+              - from:
+                  - namespaceSelector:
+                      matchLabels:
+                        kubernetes.io/metadata.name: redhat-ods-applications
+            policyTypes:
+              - Ingress
+          EOF
+          )
+
+          ns=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+          apply_policies "$ns" "$allow_openshift_ingress_policy" "$allow_traffic_from_dsp_policy" "$allow_traffic_from_rhods"
+      restartPolicy: Never
+
