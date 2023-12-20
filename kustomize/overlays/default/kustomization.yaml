@@ -5,4 +5,5 @@ resources:
 - ../../bases/common
 - ../../bases/minio
 - ../../bases/data-connections
+- ../../bases/pipelines
 
