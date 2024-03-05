@@ -3,4 +3,3 @@ kind: Kustomization
 
 resources:
 - sa.yaml
-- create-np-job.yaml
